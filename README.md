@@ -114,6 +114,8 @@ Add this to `backend/package.json`:
 ```jsonc
 {
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
     "dev": "ts-node app.ts"
   }
 }
@@ -144,7 +146,7 @@ Create `.env.local` in the frontend root:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
-
+Use any backend root if you have any. and modify it.
 ### Run
 ```bash
 npm run dev
