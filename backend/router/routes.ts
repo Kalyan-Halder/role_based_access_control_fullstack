@@ -57,7 +57,7 @@ router.post("/auth/login", asyncHandler(async (req, res) => {
 
     if (!email || !password) throw new HttpError(400, "email and password required");
 
-    const user: any = await User.findOne({ email: String(email).toLowerCase() }).select("+password role status");
+    const user: any = await User.findOne({ email: String(email).toLowerCase() }).select("+password role status name email");
     if (!user) throw new HttpError(401, "Invalid credentials");
     if (user.status !== "ACTIVE") throw new HttpError(401, "User inactive");
 
@@ -66,7 +66,6 @@ router.post("/auth/login", asyncHandler(async (req, res) => {
 
     const secret = process.env.JWT_SECRET || "dev_secret";
     const token = jwt.sign({ role: user.role }, secret, { subject: String(user._id), expiresIn: "1d" });
-
     res.json({
       token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role, status: user.status },
@@ -205,14 +204,22 @@ router.patch("/users/:id/status", requireAuth, requireAdmin, asyncHandler(async 
 // ---------------- PROJECTS ----------------
 
 // POST /projects (any authenticated user can create)
-router.post("/projects", requireAuth, asyncHandler(async (req: AuthReq, res) => {
-    const { name, description } = req.body;
+router.post(
+  "/projects",
+  requireAuth,
+  asyncHandler(async (req: AuthReq, res) => {
+    const { name, description , userID } = req.body;
+
+    const userExist = await User.findOne({_id:userID})
+    
     if (!name) throw new HttpError(400, "name required");
 
     const project = await Project.create({
       name,
       description: description || "",
-      createdBy: req.user!.id,
+      userID:userID,
+      creator_Name: userExist.name,
+      creator_Email :userExist.email,
       status: "ACTIVE",
       isDeleted: false,
     });
@@ -220,6 +227,7 @@ router.post("/projects", requireAuth, asyncHandler(async (req: AuthReq, res) => 
     res.status(201).json(project);
   })
 );
+
 
 // GET /projects (authenticated)
 router.get("/projects", requireAuth, asyncHandler(async (req, res) => {
