@@ -66,7 +66,7 @@ A full-stack Role-Based Access Control (RBAC) app with:
 - MongoDB (local or Atlas)
 - Google OAuth2 credentials (only if you want invite emails)
 
-> Important: as currently written, the backend **requires Gmail env vars at startup** (see “Tradeoffs & assumptions”).
+> Important: as currently written, the backend **requires Gmail env vars at startup**.
 
 ---
 
@@ -275,83 +275,5 @@ Base: `/api`
 
  
 
-## Tradeoffs & Assumptions
 
-1) **Invite email config is required at startup**
-- `utils/inviteEmail.ts` reads Gmail env vars via `mustEnv()` at module import time.
-- That means the backend may crash on boot if Gmail vars are missing.
 
-**Better approach**
-- Move `mustEnv()` calls inside `sendInviteEmail()` so the server can boot without email.
-- Or lazy-import `sendInviteEmail` only inside the invite route.
-
-2) **Project creation currently relies on `userID` in request body**
-- Backend route reads `userID` and then uses `userExist.name/email`.
-- Frontend does not send `userID`, so this can throw (server error) when creating projects.
-
-**Better approach**
-- Use `req.user.id` from JWT to derive the creator server-side and ignore client-submitted IDs.
-
-3) **Users pagination response mismatch**
-- Backend returns `{ page, limit, total, items }`.
-- Frontend expects `{ pages, hasNext, hasPrev }` too.
-- Fix either backend response shape or frontend expectations.
-
-4) **JWT stored in localStorage**
-- Simple for demos, but increases impact of XSS.
-- More secure approach is httpOnly cookies + CSRF protection.
-
-5) **CORS is fully open**
-- Backend uses `cors()` with default settings (wide open).
-- For production, restrict origins to your frontend domain(s).
-
-6) **Minimal validation / no tests**
-- `zod` is installed but not applied everywhere.
-- No test suite and no rate limiting on auth endpoints.
-
----
-
-## Known Issues (and quick fixes)
-
-### Fix 1: Make project creation work (recommended patch)
-Backend: in `POST /projects`, remove the `userID` dependency and use `req.user.id`:
-
-```ts
-// In backend/router/routes.ts
-router.post("/projects", requireAuth, asyncHandler(async (req: AuthReq, res) => {
-  const { name, description } = req.body;
-  if (!name) throw new HttpError(400, "name required");
-
-  const user = await User.findById(req.user.id).select("name email");
-  if (!user) throw new HttpError(401, "User not found");
-
-  const project = await Project.create({
-    name,
-    description: description || "",
-    userID: String(user._id),
-    creator_Name: (user as any).name,
-    creator_Email: (user as any).email,
-    status: "ACTIVE",
-    isDeleted: false,
-  });
-
-  res.status(201).json(project);
-}));
-```
-
-### Fix 2: Align users pagination response
-Option A: update backend response to include the fields frontend expects:
-
-```ts
-// After computing total/items...
-const pages = Math.ceil(total / limit);
-res.json({
-  page,
-  limit,
-  total,
-  pages,
-  hasNext: page < pages,
-  hasPrev: page > 1,
-  items,
-});
-```
