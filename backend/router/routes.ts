@@ -64,7 +64,7 @@ router.post("/auth/login", asyncHandler(async (req, res) => {
     const ok = await user.comparePassword(password);
     if (!ok) throw new HttpError(401, "Invalid credentials");
 
-    const secret = process.env.JWT_SECRET || "dev_secret";
+    const secret = process.env.JWT_SECRET;
     const token = jwt.sign({ role: user.role }, secret, { subject: String(user._id), expiresIn: "1d" });
     res.json({
       token,
