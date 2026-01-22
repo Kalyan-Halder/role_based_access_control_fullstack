@@ -1,0 +1,4 @@
+curl -X POST http://localhost:5000/api/dev/seed-admin \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","email":"admin@test.com","password":"admin123"}'
+
