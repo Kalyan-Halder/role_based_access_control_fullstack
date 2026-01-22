@@ -1,5 +1,5 @@
 # RBAC (Invite-based) — Next.js + Express + MongoDB
-
+use admin@test.com/admin123   to enter as an Admin
 A full-stack Role-Based Access Control (RBAC) app with:
 - **JWT login**
 - **Invite-only registration** (Admin sends an invite link)
